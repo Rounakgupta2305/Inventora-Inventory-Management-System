@@ -251,7 +251,7 @@ function Dashboard() {
                   <td className="border px-4 py-2">{product.date}</td>
                   <td className="border px-4 py-2">{product.serialNumber}</td>
                   <td className="border px-4 py-2">{product.quantity}</td>
-                  <td className="border px-4 py-2">{product.landingPrice}</td>
+                  <td className="border px-4 py-2">₹{product.landingPrice}</td>
                   <td className="border px-4 py-2">₹{product.sellingPrice}</td>
                 </tr>
               ))}
