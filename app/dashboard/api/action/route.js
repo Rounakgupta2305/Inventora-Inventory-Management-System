@@ -3,14 +3,16 @@ import { NextResponse } from "next/server";
 
 export async function POST(request) {
   let { action, slug, initialQuantity } = await request.json();
+  const userId = request.userId;
+
   const uri = process.env.NEXT_PUBLIC_MONGODB_URI;
   const client = new MongoClient(uri);
   try {
     const database = client.db('stock');
     const inventory = database.collection('inventory');
-    const filter = { slug: slug };
+    const filter = { slug: slug, userId: userId };
 
-    let newQuantity = action == "plus" ? (parseInt(initialQuantity) + 1) : (parseInt(initialQuantity) - 1)
+    let newQuantity = action == "plus" ? (parseInt(initialQuantity) + 1) : (parseInt(initialQuantity) - 1);
     const updateDoc = {
       $set: {
         quantity: newQuantity
@@ -18,12 +20,10 @@ export async function POST(request) {
     };
     const result = await inventory.updateOne(filter, updateDoc, {});
 
-    return NextResponse.json({ success: true, message: `${result.matchedCount} document(s) matched the filter, updated ${result.modifiedCount} document(s)` })
-  }
-  catch {
-    return NextResponse.json({ success: false, message: `Some error occurred` })
-  }
-  finally {
+    return NextResponse.json({ success: true, message: `${result.matchedCount} document(s) matched the filter, updated ${result.modifiedCount} document(s)` });
+  } catch {
+    return NextResponse.json({ success: false, message: `Some error occurred` });
+  } finally {
     await client.close();
   }
 }
