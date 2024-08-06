@@ -3,9 +3,6 @@ import { Button } from '@mui/material';
 import Link from 'next/link';
 
 
-{/* <button className="px-4 py-2 bg-[#094e6e] hover:bg-[#247499] active:bg-[#094e6e] rounded-md text-white focus:outline-none">
-                Get Started
-              </button> */}
 export default function Home() {
   return (
     <div className="w-full h-screen flex justify-center items-center bg-gradient-to-t from-blue-100 to-gray-200 text-[#094e6e]">
