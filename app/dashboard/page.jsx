@@ -3,8 +3,14 @@ import React from 'react'
 import Header from "./Header"
 import { useState, useEffect } from 'react'
 import LoadingAnimation from './LoadingAnimation';
+import { useUser } from '@clerk/nextjs';
 
 function Dashboard() {
+  const { user, isLoaded } = useUser();
+  if (!isLoaded) {
+    return <div>Loading...</div>;
+  }
+  const userId = user?.id;
   const [productForm, setProductForm] = useState({})
   const [products, setProducts] = useState([])
   const [alert, setAlert] = useState("")
@@ -35,7 +41,7 @@ function Dashboard() {
   }, []);
   
   const buttonAction = async (action, name, initialQuantity) => {
-    let index = products.findIndex((item) => item.productName === name);
+    let index = products.findIndex((item) => item.modelName === name);
     let newProducts = JSON.parse(JSON.stringify(products));
     
     if (action === "plus") {
@@ -46,7 +52,7 @@ function Dashboard() {
   
     setProducts(newProducts);
   
-    let indexdrop = dropdown.findIndex((item) => item.productName === name);
+    let indexdrop = dropdown.findIndex((item) => item.modelName === name);
     let newDropdown = JSON.parse(JSON.stringify(dropdown));
     
     if (action === "plus") {
@@ -67,16 +73,30 @@ function Dashboard() {
     let r = await response.json();
   };
   
-
   const addProduct = async (e) => {
     e.preventDefault();
+    const requiredFields = ['brandName', 'productName', 'modelName', 'date', 'serialNumber', 'quantity', 'landingPrice', 'sellingPrice'];
+    const isValid = requiredFields.every(field => productForm[field]);
+    
+    if (!isValid) {
+      setAlert("All fields are required!!!!");
+      setTimeout(() => {
+        setAlert('');
+      }, 5000);
+      return;
+    }
+
+    const productData = {
+      ...productForm,
+      userId, 
+    };
     try {
       const response = await fetch('/dashboard/api/product', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'}, body: JSON.stringify(productForm) 
+        headers: {'Content-Type': 'application/json'}, body: JSON.stringify(productData) 
       });
       if (response.ok) {
-        setAlert("Your Product has been added!")
+        setAlert("Your Product has been added!!!!")
         setTimeout(() => {
           setAlert('');
         }, 5000);
@@ -103,39 +123,61 @@ function Dashboard() {
     if (value.length > 3) {
       setLoading(true);
       setDropdown([]);
-      const response = await fetch('/dashboard/api/search?query=' + value);
-      let data = await response.json();
-      setDropdown(data.products);
-      setLoading(false);
+      try {
+        const response = await fetch('/dashboard/api/search?query=' + value);
+  
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+  
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (error) {
+          console.error('Error parsing JSON:', error);
+          data = { products: [] };
+        }
+  
+        setDropdown(data.products || []);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setDropdown([]);
+      } finally {
+        setLoading(false);
+      }
     } else {
       setDropdown([]);
     }
   };
-
+  
   const requestSort = (key) => {
     let direction = 'ascending';
     if (sortConfig.key === key && sortConfig.direction === 'ascending') {
       direction = 'descending';
     }
     setSortConfig({ key, direction });
+
     const sortedProducts = [...products].sort((a, b) => {
-      const nameA = a[key].toUpperCase();
-      const nameB = b[key].toUpperCase();
+      const valueA = a[key] ? a[key].toString().toUpperCase() : ''; // Ensure valueA is a string
+      const valueB = b[key] ? b[key].toString().toUpperCase() : ''; // Ensure valueB is a string
 
       let comparison = 0;
-      if (nameA > nameB) {
-        comparison = 1;
-      } else if (nameA < nameB) {
-        comparison = -1;
+      if (valueA > valueB) {
+          comparison = 1;
+      } else if (valueA < valueB) {
+          comparison = -1;
       }
 
       if (direction === 'descending') {
-        comparison *= -1;
+          comparison *= -1;
       }
       return comparison;
     });
+
     setProducts(sortedProducts);
   };
+
   
 
   return (
@@ -153,7 +195,7 @@ function Dashboard() {
             <div className="flex-row sm:flex md:flex lg:flex xl:flex gap-5">
               <div className="mb-4 w-full sm:w-1/2 md:w-1/2 lg:w-1/2 xl:w-1/2">
                 <label htmlFor="brandName" className="block mb-2">Brand Name</label>
-                <input value={productForm?.brandName || ""} name='brandName' type="text" id="brandName" onChange={handleChange} className="w-full border border-gray-300 px-4 py-2 outline-none" />
+                <input value={productForm?.brandName || ""} name='brandName' type="text" id="brandName" onChange={handleChange} className="w-full border border-gray-300 px-4 py-2 outline-none"/>
               </div>
 
               <div className="mb-4 w-full sm:w-1/2 md:w-1/2 lg:w-1/2 xl:w-1/2">
@@ -243,9 +285,9 @@ function Dashboard() {
                       <td className="border px-4 py-2">{item.landingPrice}</td>
                       <td className="border px-4 py-2">₹{item.sellingPrice}</td>     
                       <td className="border px-4 py-2 flex justify-around items-center">
-                        <button onClick={() => { buttonAction("minus", item.productName, item.quantity) }} className="subtract inline-block w-[30px] h-[30px] cursor-pointer bg-[#094e6e] text-white font-bold rounded-lg shadow-md "> - </button>
+                        <button onClick={() => { buttonAction("minus", item.modelName, item.quantity) }} className="subtract inline-block w-[30px] h-[30px] cursor-pointer bg-[#094e6e] text-white font-bold rounded-lg shadow-md "> - </button>
                           <span className="quantity inline-block  min-w-3 mx-3">{item.quantity}</span>
-                        <button onClick={() => { buttonAction("plus", item.productName, item.quantity) }} className="add inline-block w-[30px] h-[30px] cursor-pointer bg-[#094e6e] text-white font-bold rounded-lg shadow-md">  + </button>
+                        <button onClick={() => { buttonAction("plus", item.modelName, item.quantity) }} className="add inline-block w-[30px] h-[30px] cursor-pointer bg-[#094e6e] text-white font-bold rounded-lg shadow-md">  + </button>
                       </td>
                     </tr>
                   ))}
