@@ -33,6 +33,40 @@ function Dashboard() {
     };
     fetchProducts();
   }, []);
+  
+  const buttonAction = async (action, name, initialQuantity) => {
+    let index = products.findIndex((item) => item.productName === name);
+    let newProducts = JSON.parse(JSON.stringify(products));
+    
+    if (action === "plus") {
+      newProducts[index].quantity = parseInt(initialQuantity) + 1;
+    } else if (action === "minus" && initialQuantity > 0) {
+      newProducts[index].quantity = parseInt(initialQuantity) - 1;
+    }
+  
+    setProducts(newProducts);
+  
+    let indexdrop = dropdown.findIndex((item) => item.productName === name);
+    let newDropdown = JSON.parse(JSON.stringify(dropdown));
+    
+    if (action === "plus") {
+      newDropdown[indexdrop].quantity = parseInt(initialQuantity) + 1;
+    } else if (action === "minus" && initialQuantity > 0) {
+      newDropdown[indexdrop].quantity = parseInt(initialQuantity) - 1;
+    }
+  
+    setDropdown(newDropdown);
+  
+    const response = await fetch('/dashboard/api/action', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ action, name, initialQuantity })
+    });
+    let r = await response.json();
+  };
+  
 
   const addProduct = async (e) => {
     e.preventDefault();
@@ -106,7 +140,9 @@ function Dashboard() {
 
   return (
     <div className="bg-gradient-to-t from-blue-100 to-gray-100">
+
       <Header className="shadow-2xl"/>
+
       <div className='py-7 mx-2 md:mx-14 lg:mx-28 text-[#094e6e]'>
 
         {/* Component to add any item */}
@@ -192,9 +228,9 @@ function Dashboard() {
                     <th className="px-4 py-2">Product Name</th>
                     <th className="px-4 py-2">Model Name</th>
                     <th className="px-4 py-2">Serial Number</th>
-                    <th className="px-4 py-2">Quantity</th>
                     <th className="px-4 py-2">Landing Price</th>
                     <th className="px-4 py-2">Selling Price</th>
+                    <th className="px-4 py-2">Quantity</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -204,9 +240,13 @@ function Dashboard() {
                       <td className="border px-4 py-2">{item.productName}</td>
                       <td className="border px-4 py-2">{item.modelName}</td>
                       <td className="border px-4 py-2">{item.serialNumber}</td>
-                      <td className="border px-4 py-2">{item.quantity}</td>
                       <td className="border px-4 py-2">{item.landingPrice}</td>
                       <td className="border px-4 py-2">₹{item.sellingPrice}</td>     
+                      <td className="border px-4 py-2 flex justify-around items-center">
+                        <button onClick={() => { buttonAction("minus", item.productName, item.quantity) }} className="subtract inline-block w-[30px] h-[30px] cursor-pointer bg-[#094e6e] text-white font-bold rounded-lg shadow-md "> - </button>
+                          <span className="quantity inline-block  min-w-3 mx-3">{item.quantity}</span>
+                        <button onClick={() => { buttonAction("plus", item.productName, item.quantity) }} className="add inline-block w-[30px] h-[30px] cursor-pointer bg-[#094e6e] text-white font-bold rounded-lg shadow-md">  + </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
